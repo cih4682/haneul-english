@@ -1,0 +1,758 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>하늘이랑 영어 받아쓰기</title>
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#4A90D9">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="하늘영어">
+    <link rel="apple-touch-icon" href="main.jpeg">
+    <link href="https://fonts.googleapis.com/css2?family=Jua&family=Gaegu:wght@700&display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Jua', 'Segoe UI', sans-serif;
+            min-height: 100vh; display: flex; justify-content: center;
+            align-items: flex-start; padding: 0; overflow-x: hidden; background: #1a1a2e;
+        }
+        body::before {
+            content: ''; position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+            background: radial-gradient(ellipse at 20% 50%, #2d3a8c 0%, transparent 50%),
+                radial-gradient(ellipse at 80% 20%, #6c3483 0%, transparent 50%),
+                radial-gradient(ellipse at 50% 80%, #1a5276 0%, transparent 50%),
+                linear-gradient(180deg, #0f0c29 0%, #302b63 50%, #24243e 100%);
+            z-index: 0;
+        }
+        .stars { position: fixed; top: 0; left: 0; right: 0; bottom: 0; z-index: 0; pointer-events: none; overflow: hidden; }
+        .star { position: absolute; width: 3px; height: 3px; background: white; border-radius: 50%; animation: twinkle 2s infinite alternate; }
+        @keyframes twinkle { 0%{opacity:.2;transform:scale(1)} 100%{opacity:1;transform:scale(1.3)} }
+
+        .app {
+            background: rgba(255,255,255,0.95); backdrop-filter: blur(20px);
+            border-radius: 32px; padding: 24px; width: 100%; max-width: 460px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.6);
+            position: relative; z-index: 1; margin: 16px; min-height: calc(100vh - 32px);
+        }
+        .header { text-align: center; margin-bottom: 16px; }
+        .header h1 {
+            font-size: 26px;
+            background: linear-gradient(135deg, #e74c3c, #f39c12, #2ecc71, #3498db);
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+        }
+        .header .subtitle { font-family: 'Gaegu', cursive; color: #999; font-size: 15px; margin-top: 2px; }
+
+        .user-bar {
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 10px 16px; background: linear-gradient(135deg, #dfe6e9, #ffeaa7);
+            border-radius: 16px; margin-bottom: 14px; font-size: 14px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+        }
+        .user-bar .user-name { color: #e17055; font-weight: 700; }
+        .user-bar button { background: rgba(0,0,0,0.08); border: none; color: #888; font-size: 12px; cursor: pointer; padding: 4px 10px; border-radius: 8px; font-family: 'Jua', sans-serif; }
+
+        .screen { display: none; }
+        .screen.active { display: block; }
+
+        .btn {
+            padding: 14px 20px; border: none; border-radius: 18px; font-size: 17px; font-weight: 700;
+            cursor: pointer; transition: all 0.25s cubic-bezier(.4,0,.2,1); width: 100%;
+            font-family: 'Jua', sans-serif; position: relative; overflow: hidden;
+        }
+        .btn:active { transform: scale(0.95); }
+        .btn::after { content:''; position:absolute; top:0; left:0; right:0; height:50%; background:linear-gradient(180deg,rgba(255,255,255,0.25),transparent); border-radius:18px 18px 0 0; pointer-events:none; }
+        .btn-primary { background: linear-gradient(180deg, #f39c12, #e67e22); color: white; box-shadow: 0 6px 20px rgba(243,156,18,0.4); text-shadow: 0 1px 2px rgba(0,0,0,0.2); }
+        .btn-primary:disabled { background: linear-gradient(180deg, #bdc3c7, #95a5a6); box-shadow: none; cursor: not-allowed; }
+        .btn-secondary { background: linear-gradient(180deg, #ecf0f1, #dfe6e9); color: #636e72; box-shadow: 0 3px 10px rgba(0,0,0,0.08); }
+        .btn-danger { background: linear-gradient(180deg, #e74c3c, #c0392b); color: white; box-shadow: 0 6px 20px rgba(231,76,60,0.35); text-shadow: 0 1px 2px rgba(0,0,0,0.2); }
+        .btn-green { background: linear-gradient(180deg, #2ecc71, #27ae60); color: white; box-shadow: 0 6px 20px rgba(46,204,113,0.35); text-shadow: 0 1px 2px rgba(0,0,0,0.2); }
+        .btn-google { background: white; color: #333; border: 2px solid #e0e0e0; display: flex; align-items: center; justify-content: center; gap: 10px; font-size: 18px; padding: 16px; box-shadow: 0 4px 15px rgba(0,0,0,0.08); }
+        .btn-google::after { display: none; }
+        .btn + .btn { margin-top: 10px; }
+
+        input[type="text"], input[type="password"] { width: 100%; padding: 13px 16px; border: 3px solid #dfe6e9; border-radius: 16px; font-size: 16px; outline: none; font-family: 'Jua', sans-serif; transition: all 0.25s; background: #fafafa; }
+        input:focus { border-color: #f39c12; background: #fff; box-shadow: 0 0 0 4px rgba(243,156,18,0.15); }
+        .input-row { display: flex; gap: 8px; margin-bottom: 10px; }
+        .input-row input { flex: 1; }
+
+        .word-list { list-style: none; margin: 10px 0; max-height: 240px; overflow-y: auto; }
+        .word-list li { display: flex; align-items: center; padding: 10px 14px; background: linear-gradient(135deg, #ffeaa7, #fab1a0); border-radius: 14px; margin-bottom: 8px; font-size: 15px; box-shadow: 0 3px 8px rgba(0,0,0,0.06); animation: slideIn 0.3s ease; }
+        @keyframes slideIn { from{opacity:0;transform:translateX(-20px)} to{opacity:1;transform:translateX(0)} }
+        .word-list .num { background: #e74c3c; color: white; font-weight: 700; width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 13px; margin-right: 10px; flex-shrink: 0; box-shadow: 0 2px 6px rgba(231,76,60,0.3); }
+        .word-list .text { flex: 1; color: #2d3436; }
+        .word-list .del { background: rgba(0,0,0,0.1); border: none; color: white; width: 26px; height: 26px; border-radius: 50%; font-size: 14px; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+        .word-count { text-align: center; color: #b2bec3; font-size: 14px; margin: 6px 0; }
+
+        .upload-area { border: 3px dashed #b2bec3; border-radius: 20px; padding: 24px; text-align: center; margin-bottom: 14px; cursor: pointer; transition: all 0.3s; background: #fafafa; }
+        .upload-area:hover { border-color: #f39c12; background: #fff9e6; }
+        .upload-area input { display: none; }
+        .upload-area .icon { font-size: 42px; margin-bottom: 8px; }
+        .upload-area .label { font-size: 15px; color: #636e72; }
+        .upload-area .sublabel { font-size: 12px; color: #b2bec3; margin-top: 4px; }
+        .upload-preview { max-width: 100%; max-height: 140px; border-radius: 14px; margin-top: 10px; display: none; }
+        .upload-loading { display: none; align-items: center; justify-content: center; gap: 8px; padding: 14px; color: #f39c12; font-size: 15px; }
+        .upload-loading.show { display: flex; }
+        .spinner { width: 22px; height: 22px; border: 3px solid #dfe6e9; border-top-color: #f39c12; border-radius: 50%; animation: spin 0.7s linear infinite; }
+        @keyframes spin { to{transform:rotate(360deg)} }
+
+        .test-progress { text-align: center; font-size: 20px; color: #b2bec3; margin-bottom: 12px; }
+        .test-progress span { color: #e74c3c; font-weight: 700; font-size: 22px; }
+        .test-number { text-align: center; font-size: 100px; font-weight: 800; margin: 20px 0; background: linear-gradient(180deg, #f39c12, #e74c3c); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; filter: drop-shadow(0 4px 8px rgba(243,156,18,0.3)); animation: bounceNumber 0.5s cubic-bezier(.4,0,.2,1); }
+        @keyframes bounceNumber { 0%{transform:scale(0.3) rotate(-10deg);opacity:0} 60%{transform:scale(1.15) rotate(3deg)} 100%{transform:scale(1) rotate(0deg);opacity:1} }
+        .test-status { text-align: center; font-size: 16px; color: #b2bec3; margin-bottom: 24px; min-height: 24px; font-family: 'Gaegu', cursive; font-weight: 700; }
+        .test-buttons { display: flex; flex-direction: column; gap: 10px; }
+        .btn-speak { background: linear-gradient(180deg, #3498db, #2980b9); color: white; padding: 20px; font-size: 22px; box-shadow: 0 6px 24px rgba(52,152,219,0.4); text-shadow: 0 1px 2px rgba(0,0,0,0.2); border-radius: 22px; }
+        .speed-control { display: flex; justify-content: center; align-items: center; gap: 6px; margin-bottom: 14px; }
+        .speed-control label { font-size: 14px; color: #b2bec3; }
+        .speed-btn { padding: 6px 14px; border: 2px solid #dfe6e9; background: white; border-radius: 12px; font-size: 13px; cursor: pointer; font-family: 'Jua', sans-serif; transition: all 0.2s; }
+        .speed-btn.active { border-color: #e74c3c; background: #e74c3c; color: white; box-shadow: 0 2px 8px rgba(231,76,60,0.3); }
+
+        .answer-title { text-align: center; font-size: 24px; font-weight: 700; margin-bottom: 14px; color: #2d3436; }
+        .answer-list { list-style: none; margin-bottom: 14px; }
+        .answer-list li { display: flex; align-items: center; padding: 12px 14px; border-radius: 16px; margin-bottom: 8px; font-size: 16px; transition: all 0.3s; background: linear-gradient(135deg, #dfe6e9, #b2bec3); box-shadow: 0 2px 6px rgba(0,0,0,0.05); }
+        .answer-list li.correct { background: linear-gradient(135deg, #a8e6cf, #55efc4); box-shadow: 0 3px 10px rgba(85,239,196,0.3); }
+        .answer-list li.wrong { background: linear-gradient(135deg, #fab1a0, #ff7675); box-shadow: 0 3px 10px rgba(255,118,117,0.3); }
+        .answer-num { background: white; color: #e74c3c; font-weight: 800; font-size: 15px; width: 30px; height: 30px; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin-right: 12px; flex-shrink: 0; box-shadow: 0 2px 6px rgba(0,0,0,0.1); }
+        .answer-eng { font-weight: 700; color: #2d3436; }
+        .answer-kor { color: #636e72; margin-left: 6px; }
+        .answer-word { flex: 1; }
+        .grade-btns { display: flex; gap: 6px; margin-left: 6px; }
+        .grade-btn { width: 38px; height: 38px; border-radius: 50%; border: 3px solid #dfe6e9; background: white; font-size: 16px; font-weight: 800; cursor: pointer; transition: all 0.25s cubic-bezier(.4,0,.2,1); display: flex; align-items: center; justify-content: center; font-family: 'Jua', sans-serif; }
+        .grade-btn:hover { transform: scale(1.15); }
+        .grade-btn.selected-o { border-color: #00b894; background: #00b894; color: white; box-shadow: 0 3px 10px rgba(0,184,148,0.4); transform: scale(1.1); }
+        .grade-btn.selected-x { border-color: #e74c3c; background: #e74c3c; color: white; box-shadow: 0 3px 10px rgba(231,76,60,0.4); transform: scale(1.1); }
+        .score-bar { text-align: center; padding: 16px; background: linear-gradient(135deg, #ffeaa7, #fab1a0); border-radius: 18px; margin-bottom: 14px; font-size: 18px; font-weight: 700; color: #2d3436; box-shadow: 0 4px 12px rgba(0,0,0,0.08); animation: popIn 0.4s cubic-bezier(.4,0,.2,1); }
+        .score-bar .score { font-size: 36px; background: linear-gradient(180deg, #e74c3c, #c0392b); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+        @keyframes popIn { 0%{transform:scale(0.5);opacity:0} 70%{transform:scale(1.08)} 100%{transform:scale(1);opacity:1} }
+
+        /* 달력 */
+        .calendar { margin-top: 16px; }
+        .cal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+        .cal-header .cal-title { font-size: 18px; font-weight: 700; color: #2d3436; }
+        .cal-nav { background: none; border: none; font-size: 22px; cursor: pointer; color: #636e72; padding: 4px 10px; border-radius: 10px; font-family: 'Jua', sans-serif; }
+        .cal-nav:hover { background: #f0f0f0; }
+        .cal-weekdays { display: grid; grid-template-columns: repeat(7, 1fr); text-align: center; font-size: 12px; color: #b2bec3; margin-bottom: 6px; }
+        .cal-weekdays span:first-child { color: #e74c3c; }
+        .cal-weekdays span:last-child { color: #3498db; }
+        .cal-days { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; }
+        .cal-day {
+            aspect-ratio: 1; display: flex; flex-direction: column; align-items: center; justify-content: center;
+            border-radius: 14px; font-size: 14px; cursor: pointer; transition: all 0.2s;
+            position: relative; background: #f8f9fa; border: 2px solid transparent;
+        }
+        .cal-day:hover { background: #eee; }
+        .cal-day.empty { background: transparent; cursor: default; }
+        .cal-day.today { border-color: #f39c12; background: #fff9e6; }
+        .cal-day.has-study { background: linear-gradient(135deg, #a8e6cf, #55efc4); font-weight: 700; }
+        .cal-day.has-study.perfect { background: linear-gradient(135deg, #ffeaa7, #fdcb6e); }
+        .cal-day .cal-sticker { font-size: 10px; margin-top: 1px; }
+        .cal-day.selected { border-color: #3498db; box-shadow: 0 0 0 3px rgba(52,152,219,0.2); }
+        .streak-bar { text-align: center; padding: 10px; background: linear-gradient(135deg, #fd79a8, #e84393); border-radius: 14px; color: white; font-size: 14px; margin-bottom: 12px; box-shadow: 0 3px 10px rgba(232,67,147,0.3); }
+
+        /* 날짜 상세 */
+        .day-detail { margin-top: 12px; padding: 16px; background: linear-gradient(135deg, #dfe6e9, #b2bec3); border-radius: 18px; animation: popIn 0.3s; }
+        .day-detail-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+        .day-detail-title { font-size: 16px; font-weight: 700; color: #2d3436; }
+        .day-detail-score { font-size: 14px; color: #636e72; }
+        .day-detail-list { list-style: none; }
+        .day-detail-list li { display: flex; align-items: center; padding: 8px 12px; background: white; border-radius: 10px; margin-bottom: 4px; font-size: 14px; }
+        .day-detail-list li.correct { background: #e8f5e9; }
+        .day-detail-list li.wrong { background: #fce4ec; }
+        .day-detail-list .mark { margin-right: 8px; font-size: 16px; }
+        .day-detail-btns { display: flex; gap: 8px; margin-top: 10px; }
+        .day-detail-btns .btn { font-size: 14px; padding: 10px; }
+
+        /* 오답노트 */
+        .wrong-note { margin-top: 16px; border-top: 3px dashed #dfe6e9; padding-top: 14px; }
+        .wrong-title { font-size: 16px; font-weight: 700; color: #e74c3c; margin-bottom: 10px; display: flex; align-items: center; gap: 6px; }
+        .wrong-list { list-style: none; }
+        .wrong-list li { display: flex; align-items: center; padding: 10px 14px; background: linear-gradient(135deg, #fab1a0, #ff7675); border-radius: 14px; margin-bottom: 6px; font-size: 15px; color: white; box-shadow: 0 2px 6px rgba(0,0,0,0.08); animation: slideIn 0.3s; }
+        .wrong-list .wrong-word { flex: 1; }
+        .wrong-list .wrong-count { background: rgba(0,0,0,0.2); padding: 2px 10px; border-radius: 10px; font-size: 12px; margin-left: 6px; }
+        .wrong-list .wrong-fire { font-size: 16px; margin-left: 4px; }
+        .wrong-empty { text-align: center; padding: 20px; color: #b2bec3; font-size: 14px; }
+        .wrong-graduated { margin-top: 10px; }
+        .wrong-graduated li { background: linear-gradient(135deg, #a8e6cf, #55efc4) !important; color: #2d3436 !important; text-decoration: line-through; opacity: 0.7; }
+
+        /* 하단 탭바 */
+        .bottom-tabs { display: flex; margin-top: 16px; background: #f0f0f0; border-radius: 16px; padding: 4px; gap: 4px; }
+        .bottom-tab { flex: 1; padding: 10px 4px; text-align: center; font-size: 13px; font-weight: 700; cursor: pointer; background: transparent; color: #636e72; border: none; border-radius: 12px; font-family: 'Jua', sans-serif; transition: all 0.25s; }
+        .bottom-tab.active { background: white; color: #e74c3c; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+        .bottom-tab .tab-icon { font-size: 18px; display: block; margin-bottom: 2px; }
+
+        .tabs { display: flex; gap: 0; margin-bottom: 14px; border-radius: 16px; overflow: hidden; background: #dfe6e9; padding: 4px; }
+        .tab { flex: 1; padding: 10px; text-align: center; font-size: 14px; font-weight: 700; cursor: pointer; background: transparent; color: #636e72; border: none; border-radius: 12px; font-family: 'Jua', sans-serif; transition: all 0.25s; }
+        .tab.active { background: white; color: #e74c3c; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+
+        .login-char { width: 180px; height: 180px; border-radius: 36px; object-fit: cover; margin-bottom: 16px; box-shadow: 0 12px 40px rgba(243,156,18,0.3); animation: float 3s ease-in-out infinite; }
+        @keyframes float { 0%,100%{transform:translateY(0) rotate(0deg)} 50%{transform:translateY(-10px) rotate(2deg)} }
+        .login-title { font-size: 28px; font-weight: 800; margin-bottom: 6px; background: linear-gradient(135deg, #e74c3c, #f39c12); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+
+        .confetti { position: fixed; top: 0; left: 0; right: 0; bottom: 0; pointer-events: none; z-index: 99; }
+        .confetti-piece { position: absolute; width: 10px; height: 10px; border-radius: 2px; animation: confettiFall 3s ease-in forwards; }
+        @keyframes confettiFall { 0%{transform:translateY(-100vh) rotate(0deg);opacity:1} 100%{transform:translateY(100vh) rotate(720deg);opacity:0} }
+
+        .modal-overlay { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.6); z-index: 100; justify-content: center; align-items: center; backdrop-filter: blur(4px); }
+        .modal-overlay.show { display: flex; }
+        .modal { background: white; border-radius: 24px; padding: 28px; width: 90%; max-width: 400px; box-shadow: 0 20px 60px rgba(0,0,0,0.3); max-height: 80vh; overflow-y: auto; }
+        .modal h2 { font-size: 20px; margin-bottom: 14px; color: #2d3436; }
+        .modal label { font-size: 14px; color: #636e72; display: block; margin-bottom: 6px; margin-top: 14px; }
+        .modal .help { font-size: 12px; color: #b2bec3; margin-top: 4px; }
+        .settings-btn { position: absolute; top: 16px; right: 16px; background: rgba(0,0,0,0.05); border: none; font-size: 22px; cursor: pointer; color: #b2bec3; width: 38px; height: 38px; border-radius: 50%; display: flex; align-items: center; justify-content: center; transition: all 0.2s; }
+        .settings-btn:hover { background: rgba(0,0,0,0.1); color: #636e72; }
+    </style>
+</head>
+<body>
+    <div class="stars" id="stars"></div>
+    <div class="app">
+        <button class="settings-btn" onclick="openSettings()">&#9881;</button>
+        <div class="header">
+            <h1>하늘이랑 영어 받아쓰기</h1>
+            <p class="subtitle">영어 단어를 듣고 받아쓰기 연습!</p>
+        </div>
+
+        <!-- 로그인 -->
+        <div id="screen-login" class="screen active">
+            <div style="text-align:center; padding: 20px 0;">
+                <img src="main.jpeg" alt="하늘이랑 영어" class="login-char">
+                <div class="login-title">Let's Go!</div>
+                <p style="color:#888; margin-bottom:28px; font-size:15px; font-family:'Gaegu',cursive; font-weight:700;">로그인하면 어디서든 단어장을 쓸 수 있어요</p>
+                <button class="btn btn-google" onclick="googleLogin()">
+                    <svg width="22" height="22" viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg>
+                    Google로 로그인
+                </button>
+            </div>
+        </div>
+
+        <!-- 메인 (단어 입력 + 달력 + 오답노트) -->
+        <div id="screen-input" class="screen">
+            <div class="user-bar" id="userBar">
+                <span class="user-name" id="userName"></span>
+                <button onclick="logout()">로그아웃</button>
+            </div>
+
+            <!-- 하단 탭: 단어입력 / 달력 / 오답노트 -->
+            <div class="bottom-tabs">
+                <button class="bottom-tab active" onclick="switchMain('words')"><span class="tab-icon">&#9997;</span>단어입력</button>
+                <button class="bottom-tab" onclick="switchMain('calendar')"><span class="tab-icon">&#128197;</span>달력</button>
+                <button class="bottom-tab" onclick="switchMain('wrong')"><span class="tab-icon">&#128213;</span>오답노트</button>
+            </div>
+
+            <!-- 단어 입력 섹션 -->
+            <div id="main-words">
+                <div class="tabs" style="margin-top:14px;">
+                    <button class="tab active" onclick="switchTab('manual')">&#9997; 직접 입력</button>
+                    <button class="tab" onclick="switchTab('photo')">&#128247; 사진 추출</button>
+                </div>
+                <div id="tab-manual">
+                    <div class="input-row">
+                        <input type="text" id="inputEng" placeholder="영어 (apple)" />
+                        <input type="text" id="inputKor" placeholder="뜻 (사과)" />
+                    </div>
+                    <button class="btn btn-green" onclick="addWord()" style="margin-bottom:6px;">+ 단어 추가</button>
+                </div>
+                <div id="tab-photo" style="display:none;">
+                    <div class="upload-area" onclick="document.getElementById('photoInput').click()">
+                        <input type="file" id="photoInput" accept="image/*" onchange="handlePhoto(this)" />
+                        <div class="icon">&#128248;</div>
+                        <div class="label">교재 사진을 찍거나 선택하세요</div>
+                        <div class="sublabel">인쇄된 영어단어와 뜻을 자동 추출!</div>
+                        <img class="upload-preview" id="uploadPreview" />
+                    </div>
+                    <div class="upload-loading" id="uploadLoading"><div class="spinner"></div><span>AI가 단어를 찾고 있어요...</span></div>
+                </div>
+                <div class="word-count" id="wordCount">단어 0개</div>
+                <ul class="word-list" id="wordList"></ul>
+                <button class="btn btn-primary" id="btnStart" onclick="startTest()" disabled>&#127919; 시험 시작!</button>
+            </div>
+
+            <!-- 달력 섹션 -->
+            <div id="main-calendar" style="display:none;">
+                <div id="streakBar" class="streak-bar" style="display:none; margin-top:14px;"></div>
+                <div class="calendar" style="margin-top:14px;">
+                    <div class="cal-header">
+                        <button class="cal-nav" onclick="changeMonth(-1)">&#9664;</button>
+                        <span class="cal-title" id="calTitle"></span>
+                        <button class="cal-nav" onclick="changeMonth(1)">&#9654;</button>
+                    </div>
+                    <div class="cal-weekdays"><span>일</span><span>월</span><span>화</span><span>수</span><span>목</span><span>금</span><span>토</span></div>
+                    <div class="cal-days" id="calDays"></div>
+                </div>
+                <div id="dayDetail" style="display:none;"></div>
+            </div>
+
+            <!-- 오답노트 섹션 -->
+            <div id="main-wrong" style="display:none;">
+                <div class="wrong-note" style="border:none; margin-top:14px; padding-top:0;">
+                    <div class="wrong-title">&#128213; 오답노트</div>
+                    <div id="wrongList"></div>
+                    <button class="btn btn-danger" id="btnWrongTest" onclick="startWrongTest()" style="margin-top:12px; display:none;">&#128293; 틀린 단어 시험 보기</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 시험 모드 -->
+        <div id="screen-test" class="screen">
+            <div class="test-progress"><span id="testCurrent">1</span> / <span id="testTotal">10</span></div>
+            <div class="speed-control">
+                <label>속도:</label>
+                <button class="speed-btn" onclick="setSpeed(0.6)" data-speed="0.6">&#128034; 느리게</button>
+                <button class="speed-btn active" onclick="setSpeed(0.85)" data-speed="0.85">&#128694; 보통</button>
+                <button class="speed-btn" onclick="setSpeed(1.1)" data-speed="1.1">&#128007; 빠르게</button>
+            </div>
+            <div class="test-number" id="testNumber">1</div>
+            <div class="test-status" id="testStatus">버튼을 눌러 단어를 들어보세요</div>
+            <div class="test-buttons">
+                <button class="btn btn-speak" onclick="speakCurrent()">&#128264; 읽어주기</button>
+                <button class="btn btn-secondary" onclick="replayCurrent()">&#128260; 다시 듣기</button>
+                <button class="btn btn-danger" onclick="nextWord()" id="btnNext">다음 &#10145;</button>
+            </div>
+        </div>
+
+        <!-- 정답지 + 채점 -->
+        <div id="screen-answer" class="screen">
+            <div class="answer-title">&#127942; 정답지 & 채점</div>
+            <div class="score-bar" id="scoreBar" style="display:none;">
+                <div>맞은 개수: <span class="score" id="scoreText">0</span> / <span id="scoreTotalText">0</span></div>
+            </div>
+            <ul class="answer-list" id="answerList"></ul>
+            <button class="btn btn-primary" onclick="retryTest()">&#128260; 같은 단어로 다시</button>
+            <button class="btn btn-danger" onclick="retryWrong()" id="btnRetryWrong" style="display:none;">&#10060; 틀린 단어만 다시</button>
+            <button class="btn btn-secondary" onclick="goHome()">&#127968; 처음으로</button>
+        </div>
+    </div>
+
+    <!-- 설정 모달 -->
+    <div class="modal-overlay" id="settingsModal">
+        <div class="modal">
+            <h2>&#9881; 설정</h2>
+            <label>Gemini API Key (사진 단어 추출용)</label>
+            <input type="password" id="apiKeyInput" placeholder="AIza..." />
+            <div class="help">Google AI Studio에서 무료로 발급받을 수 있어요</div>
+            <div style="margin-top:20px; display:flex; gap:8px;">
+                <button class="btn btn-primary" onclick="saveSettings()" style="flex:1;">저장</button>
+                <button class="btn btn-secondary" onclick="closeSettings()" style="flex:1;">닫기</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+
+    <script>
+        // ===== 별 =====
+        (function(){ const c=document.getElementById('stars'); for(let i=0;i<60;i++){ const s=document.createElement('div'); s.className='star'; s.style.left=Math.random()*100+'%'; s.style.top=Math.random()*100+'%'; s.style.animationDelay=Math.random()*3+'s'; s.style.animationDuration=(1.5+Math.random()*2)+'s'; const sz=1+Math.random()*3; s.style.width=sz+'px'; s.style.height=sz+'px'; c.appendChild(s); }})();
+
+        function showConfetti(){ const c=document.createElement('div'); c.className='confetti'; document.body.appendChild(c); const cols=['#e74c3c','#f39c12','#2ecc71','#3498db','#9b59b6','#1abc9c','#ff6b6b']; for(let i=0;i<50;i++){ const p=document.createElement('div'); p.className='confetti-piece'; p.style.left=Math.random()*100+'%'; p.style.background=cols[Math.floor(Math.random()*cols.length)]; p.style.animationDelay=Math.random()*1.5+'s'; p.style.animationDuration=(2+Math.random()*2)+'s'; const sz=6+Math.random()*10; p.style.width=sz+'px'; p.style.height=sz*0.6+'px'; c.appendChild(p); } setTimeout(()=>c.remove(),5000); }
+
+        // ===== Firebase =====
+        firebase.initializeApp({ apiKey:"AIzaSyDiHYYb8402XhRZzykjSSdS47rV5gPUYF8", authDomain:"haneul-english-app.firebaseapp.com", projectId:"haneul-english-app", storageBucket:"haneul-english-app.firebasestorage.app", messagingSenderId:"849671498472", appId:"1:849671498472:web:6e145e0f6fd14461ef375d" });
+        const auth = firebase.auth();
+        const db = firebase.firestore();
+        let currentUser = null;
+
+        // ===== 상태 =====
+        let words = [];
+        let shuffled = [];
+        let currentIndex = 0;
+        let speechRate = 0.85;
+        let hasSpoken = false;
+        let grades = {};
+        let calYear, calMonth;
+        let studyData = {};   // { 'YYYY-MM-DD': { words, grades, score } }
+        let wrongWords = {};  // { 'eng': { eng, kor, count, lastDate } }
+        let isWrongTest = false;
+
+        // ===== 로그인 =====
+        function googleLogin() { auth.signInWithPopup(new firebase.auth.GoogleAuthProvider()).catch(err => alert('로그인 실패: ' + err.message)); }
+        function logout() { auth.signOut(); }
+
+        auth.onAuthStateChanged(user => {
+            currentUser = user;
+            if (user) {
+                document.getElementById('userName').textContent = user.displayName || user.email;
+                showScreen('screen-input');
+                const now = new Date(); calYear = now.getFullYear(); calMonth = now.getMonth();
+                loadAllData();
+            } else { showScreen('screen-login'); }
+        });
+
+        // ===== 화면 =====
+        function showScreen(id) { document.querySelectorAll('.screen').forEach(s => s.classList.remove('active')); document.getElementById(id).classList.add('active'); }
+
+        function switchMain(section) {
+            document.querySelectorAll('.bottom-tab').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.bottom-tab').forEach(t => { if(t.textContent.includes(section==='words'?'단어입력':section==='calendar'?'달력':'오답노트')) t.classList.add('active'); });
+            document.getElementById('main-words').style.display = section==='words' ? '' : 'none';
+            document.getElementById('main-calendar').style.display = section==='calendar' ? '' : 'none';
+            document.getElementById('main-wrong').style.display = section==='wrong' ? '' : 'none';
+            if (section==='calendar') renderCalendar();
+            if (section==='wrong') renderWrongNote();
+        }
+
+        function switchTab(tab) {
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            if(tab==='manual'){ document.querySelector('.tab:first-child').classList.add('active'); document.getElementById('tab-manual').style.display=''; document.getElementById('tab-photo').style.display='none'; }
+            else { document.querySelector('.tab:last-child').classList.add('active'); document.getElementById('tab-manual').style.display='none'; document.getElementById('tab-photo').style.display=''; }
+        }
+
+        // ===== 단어 입력 =====
+        document.addEventListener('DOMContentLoaded', () => {
+            const iE=document.getElementById('inputEng'), iK=document.getElementById('inputKor');
+            iE.addEventListener('keydown', e=>{ if(e.key==='Enter'){ iE.value.trim()&&iK.value.trim() ? addWord() : iK.focus(); }});
+            iK.addEventListener('keydown', e=>{ if(e.key==='Enter') addWord(); });
+        });
+
+        function addWord() {
+            const eng=document.getElementById('inputEng').value.trim(), kor=document.getElementById('inputKor').value.trim();
+            if(!eng||!kor) return;
+            words.push({eng,kor}); document.getElementById('inputEng').value=''; document.getElementById('inputKor').value='';
+            document.getElementById('inputEng').focus(); renderWordList();
+        }
+        function removeWord(i) { words.splice(i,1); renderWordList(); }
+        function renderWordList() {
+            document.getElementById('wordList').innerHTML = words.map((w,i) => `<li><span class="num">${i+1}</span><span class="text"><strong>${w.eng}</strong> - ${w.kor}</span><button class="del" onclick="removeWord(${i})">&#10005;</button></li>`).join('');
+            document.getElementById('wordCount').textContent = `단어 ${words.length}개`;
+            document.getElementById('btnStart').disabled = words.length === 0;
+        }
+
+        // ===== 사진 → Gemini =====
+        async function handlePhoto(input) {
+            const file=input.files[0]; if(!file) return;
+            const apiKey=localStorage.getItem('gemini_api_key');
+            if(!apiKey){ alert('설정에서 Gemini API Key를 먼저 입력해주세요!'); openSettings(); return; }
+            const preview=document.getElementById('uploadPreview');
+            const reader=new FileReader(); reader.onload=e=>{preview.src=e.target.result;preview.style.display='block';}; reader.readAsDataURL(file);
+            document.getElementById('uploadLoading').classList.add('show');
+            try {
+                const base64=await fileToBase64(file);
+                const prompt = `이 사진은 초등학생 영어 교재 또는 단어장 페이지입니다.
+
+사진에서 영어 단어(또는 영어 표현)와 그에 대응하는 한글 뜻을 찾아서 추출해주세요.
+
+규칙:
+1. 인쇄된 텍스트만 추출하세요 (손글씨, 낙서 무시)
+2. 영어 단어/표현과 한글 뜻이 짝을 이루는 것만 추출하세요
+3. 예문, 문법 설명, 페이지 번호, 제목 등은 제외하세요
+4. 단어가 굵은 글씨거나 색깔이 다르거나 번호가 붙어있으면 핵심 단어일 가능성이 높습니다
+5. 한글 뜻이 명시적으로 없더라도, 단어 목록이 보이면 한글 뜻을 추가해주세요
+6. 영어 단어는 원형(기본형)으로 추출하세요
+
+반드시 아래 JSON 배열 형식으로만 응답하세요. 다른 텍스트 없이 JSON만:
+[{"eng": "apple", "kor": "사과"}, {"eng": "run", "kor": "달리다"}]
+
+단어를 하나도 찾을 수 없으면 빈 배열 []을 응답하세요.`;
+
+                const resp=await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`,
+                    {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({
+                        contents:[{parts:[{text:prompt},{inlineData:{mimeType:file.type,data:base64}}]}],
+                        generationConfig:{temperature:0.1}
+                    })});
+                const data=await resp.json();
+
+                // 에러 체크
+                if(data.error) { alert('API 오류: ' + (data.error.message || '알 수 없는 오류')); return; }
+
+                const text=data.candidates?.[0]?.content?.parts?.[0]?.text||'';
+                console.log('Gemini 응답:', text);
+
+                const m=text.match(/\[[\s\S]*?\]/);
+                if(m){
+                    const ex=JSON.parse(m[0]);
+                    if(ex.length === 0) { alert('사진에서 단어를 찾지 못했어요.\n교재의 단어 부분이 잘 보이게 다시 찍어보세요!'); return; }
+                    ex.forEach(w=>{if(w.eng&&w.kor) words.push({eng:w.eng.trim(),kor:w.kor.trim()});});
+                    renderWordList();
+                    alert(`${ex.length}개 단어를 찾았어요!`);
+                } else { alert('단어를 찾지 못했어요.\n교재의 단어 부분이 잘 보이게 다시 찍어보세요!'); }
+            } catch(err){ alert('오류: '+err.message); }
+            finally { document.getElementById('uploadLoading').classList.remove('show'); input.value=''; }
+        }
+        function fileToBase64(file){ return new Promise((res,rej)=>{ const r=new FileReader(); r.onload=()=>res(r.result.split(',')[1]); r.onerror=rej; r.readAsDataURL(file); }); }
+
+        // ===== 시험 =====
+        function startTest() {
+            if(words.length===0) return;
+            isWrongTest = false;
+            shuffled=[...words].sort(()=>Math.random()-0.5);
+            currentIndex=0; hasSpoken=false; grades={};
+            document.getElementById('testTotal').textContent=shuffled.length;
+            updateTestUI(); showScreen('screen-test');
+        }
+
+        function startWrongTest() {
+            const ww = Object.values(wrongWords).filter(w => w.count > 0);
+            if(ww.length===0) return;
+            isWrongTest = true;
+            words = ww.map(w => ({eng:w.eng, kor:w.kor}));
+            shuffled = [...words].sort(()=>Math.random()-0.5);
+            currentIndex=0; hasSpoken=false; grades={};
+            document.getElementById('testTotal').textContent=shuffled.length;
+            updateTestUI(); showScreen('screen-test');
+        }
+
+        function updateTestUI() {
+            document.getElementById('testCurrent').textContent=currentIndex+1;
+            document.getElementById('testNumber').textContent=currentIndex+1;
+            document.getElementById('testStatus').textContent='버튼을 눌러 단어를 들어보세요~';
+            document.getElementById('btnNext').innerHTML=currentIndex>=shuffled.length-1?'&#127942; 완료!':'다음 &#10145;';
+            hasSpoken=false;
+        }
+        function speakCurrent() { if(currentIndex>=shuffled.length) return; speak(shuffled[currentIndex].eng); document.getElementById('testStatus').textContent='잘 듣고 받아쓰세요! ✍️'; hasSpoken=true; }
+        function replayCurrent() { if(!hasSpoken){document.getElementById('testStatus').textContent='먼저 읽어주기를 눌러주세요~';return;} speak(shuffled[currentIndex].eng); document.getElementById('testStatus').textContent='한번 더 들려줄게요! ✍️'; }
+        function nextWord() { if(!hasSpoken){document.getElementById('testStatus').textContent='먼저 읽어주기를 눌러주세요!';return;} currentIndex++; if(currentIndex>=shuffled.length){showAnswer();return;} updateTestUI(); }
+
+        // ===== TTS =====
+        let ttsReady=false;
+        function warmupTTS(){ if(ttsReady)return; const d=new SpeechSynthesisUtterance(''); d.volume=0; speechSynthesis.speak(d); ttsReady=true; }
+        document.addEventListener('touchstart',warmupTTS,{once:true});
+        document.addEventListener('click',warmupTTS,{once:true});
+        let cachedVoices=[];
+        function loadVoices(){cachedVoices=speechSynthesis.getVoices();}
+        loadVoices();
+        if(speechSynthesis.onvoiceschanged!==undefined) speechSynthesis.onvoiceschanged=loadVoices;
+        setTimeout(loadVoices,100); setTimeout(loadVoices,500); setTimeout(loadVoices,1000);
+
+        function speak(text){
+            if(cachedVoices.length===0) loadVoices();
+            speechSynthesis.cancel();
+            setTimeout(()=>{
+                const u=new SpeechSynthesisUtterance(text); u.lang='en-US'; u.rate=speechRate; u.pitch=1; u.volume=1;
+                if(cachedVoices.length>0){ const v=cachedVoices.find(v=>v.lang==='en-US')||cachedVoices.find(v=>v.lang==='en_US')||cachedVoices.find(v=>v.lang==='en-GB')||cachedVoices.find(v=>v.lang.startsWith('en')); if(v) u.voice=v; }
+                u.onerror=()=>{ const r=new SpeechSynthesisUtterance(text); r.lang='en-US'; r.rate=speechRate; speechSynthesis.speak(r); };
+                speechSynthesis.speak(u);
+                clearInterval(window._ttsKeepAlive);
+                window._ttsKeepAlive=setInterval(()=>{if(!speechSynthesis.speaking){clearInterval(window._ttsKeepAlive);return;} speechSynthesis.pause(); speechSynthesis.resume();},5000);
+            },50);
+        }
+        function setSpeed(rate){ speechRate=rate; document.querySelectorAll('.speed-btn').forEach(b=>b.classList.toggle('active',parseFloat(b.dataset.speed)===rate)); }
+
+        // ===== 정답지 =====
+        function showAnswer() {
+            grades={}; renderAnswerList();
+            document.getElementById('scoreBar').style.display='none';
+            document.getElementById('btnRetryWrong').style.display='none';
+            showScreen('screen-answer'); showConfetti();
+        }
+        function renderAnswerList() {
+            document.getElementById('answerList').innerHTML=shuffled.map((w,i)=>{
+                const g=grades[i]; const cls=g==='o'?'correct':g==='x'?'wrong':'';
+                return `<li class="${cls}"><span class="answer-num">${i+1}</span><span class="answer-word"><span class="answer-eng">${w.eng}</span><span class="answer-kor">- ${w.kor}</span></span><span class="grade-btns"><button class="grade-btn ${g==='o'?'selected-o':''}" onclick="grade(${i},'o')">O</button><button class="grade-btn ${g==='x'?'selected-x':''}" onclick="grade(${i},'x')">X</button></span></li>`;
+            }).join('');
+        }
+        function grade(i,v){ grades[i]=v; renderAnswerList(); updateScore(); }
+
+        function updateScore() {
+            const total=shuffled.length, graded=Object.keys(grades).length;
+            const correct=Object.values(grades).filter(g=>g==='o').length;
+            const wrong=Object.values(grades).filter(g=>g==='x').length;
+            if(graded===total){
+                document.getElementById('scoreBar').style.display='';
+                document.getElementById('scoreText').textContent=correct;
+                document.getElementById('scoreTotalText').textContent=total;
+                if(wrong>0) document.getElementById('btnRetryWrong').style.display='';
+                if(correct===total) showConfetti();
+                saveGrades();
+            }
+        }
+
+        function retryTest() {
+            shuffled=[...shuffled].sort(()=>Math.random()-0.5);
+            currentIndex=0; hasSpoken=false; grades={};
+            document.getElementById('testTotal').textContent=shuffled.length;
+            updateTestUI(); showScreen('screen-test');
+        }
+        function retryWrong() {
+            const ww=shuffled.filter((_,i)=>grades[i]==='x'); if(ww.length===0) return;
+            shuffled=ww.sort(()=>Math.random()-0.5);
+            currentIndex=0; hasSpoken=false; grades={};
+            document.getElementById('testTotal').textContent=shuffled.length;
+            updateTestUI(); showScreen('screen-test');
+        }
+        function goHome() { showScreen('screen-input'); loadAllData(); }
+
+        // ===== Firestore =====
+        async function loadAllData() {
+            if(!currentUser) return;
+            // 단어장 + 채점 기록 로드
+            const setsSnap = await db.collection('users').doc(currentUser.uid).collection('wordsets').get();
+            studyData = {};
+            setsSnap.forEach(doc => { const d=doc.data(); studyData[d.date] = { id:doc.id, words:d.words, grades:d.grades||null, score:d.score||null }; });
+            // 오답노트 로드
+            const wrongSnap = await db.collection('users').doc(currentUser.uid).collection('wrongWords').get();
+            wrongWords = {};
+            wrongSnap.forEach(doc => { const d=doc.data(); wrongWords[d.eng] = { eng:d.eng, kor:d.kor, count:d.count, lastDate:d.lastDate }; });
+            renderCalendar();
+            renderWrongNote();
+            updateStreak();
+        }
+
+        async function saveGrades() {
+            if(!currentUser) return;
+            const today = new Date().toISOString().split('T')[0];
+            const ref = db.collection('users').doc(currentUser.uid).collection('wordsets');
+
+            // 채점 결과 저장
+            const gradeMap = {};
+            shuffled.forEach((w,i) => { gradeMap[w.eng] = grades[i]; });
+            const correct = Object.values(grades).filter(g=>g==='o').length;
+            const total = shuffled.length;
+
+            const snap = await ref.where('date','==',today).get();
+            const data = { words: shuffled, grades: gradeMap, score: { correct, total }, updatedAt: firebase.firestore.FieldValue.serverTimestamp() };
+            if(!snap.empty) { await snap.docs[0].ref.update(data); }
+            else { data.date = today; data.createdAt = firebase.firestore.FieldValue.serverTimestamp(); await ref.add(data); }
+
+            // 오답노트 업데이트
+            const wrongRef = db.collection('users').doc(currentUser.uid).collection('wrongWords');
+            for(const w of shuffled) {
+                const g = gradeMap[w.eng];
+                const docId = w.eng.toLowerCase().replace(/[^a-z0-9]/g,'_');
+                if(g === 'x') {
+                    const existing = wrongWords[w.eng];
+                    const newCount = (existing ? existing.count : 0) + 1;
+                    await wrongRef.doc(docId).set({ eng:w.eng, kor:w.kor, count:newCount, lastDate:today }, {merge:true});
+                } else if(g === 'o') {
+                    const existing = wrongWords[w.eng];
+                    if(existing && existing.count > 0) {
+                        const newCount = existing.count - 1;
+                        if(newCount <= 0) { await wrongRef.doc(docId).delete(); }
+                        else { await wrongRef.doc(docId).update({count:newCount}); }
+                    }
+                }
+            }
+            await loadAllData();
+        }
+
+        // ===== 달력 =====
+        function changeMonth(delta) { calMonth+=delta; if(calMonth<0){calMonth=11;calYear--;} if(calMonth>11){calMonth=0;calYear++;} renderCalendar(); }
+
+        function renderCalendar() {
+            const title = `${calYear}년 ${calMonth+1}월`;
+            document.getElementById('calTitle').textContent = title;
+
+            const firstDay = new Date(calYear, calMonth, 1).getDay();
+            const lastDate = new Date(calYear, calMonth+1, 0).getDate();
+            const today = new Date();
+            const todayStr = today.toISOString().split('T')[0];
+
+            let html = '';
+            for(let i=0; i<firstDay; i++) html += '<div class="cal-day empty"></div>';
+
+            for(let d=1; d<=lastDate; d++) {
+                const dateStr = `${calYear}-${String(calMonth+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+                const data = studyData[dateStr];
+                const isToday = dateStr === todayStr;
+                let cls = 'cal-day';
+                let sticker = '';
+                if(isToday) cls += ' today';
+                if(data) {
+                    cls += ' has-study';
+                    if(data.score && data.score.correct === data.score.total) { cls += ' perfect'; sticker = '&#128081;'; }
+                    else { sticker = '&#11088;'; }
+                }
+                html += `<div class="${cls}" onclick="showDayDetail('${dateStr}')"><span>${d}</span><span class="cal-sticker">${sticker}</span></div>`;
+            }
+            document.getElementById('calDays').innerHTML = html;
+        }
+
+        function showDayDetail(dateStr) {
+            const data = studyData[dateStr];
+            const detail = document.getElementById('dayDetail');
+            if(!data) { detail.style.display='none'; return; }
+
+            const [y,m,d] = dateStr.split('-');
+            const dayNames = ['일','월','화','수','목','금','토'];
+            const dayName = dayNames[new Date(parseInt(y),parseInt(m)-1,parseInt(d)).getDay()];
+            const scoreText = data.score ? `${data.score.correct}/${data.score.total}` : '미채점';
+
+            let listHtml = data.words.map(w => {
+                const g = data.grades ? data.grades[w.eng] : null;
+                const cls = g==='o' ? 'correct' : g==='x' ? 'wrong' : '';
+                const mark = g==='o' ? '&#9989;' : g==='x' ? '&#10060;' : '&#9898;';
+                return `<li class="${cls}"><span class="mark">${mark}</span><strong>${w.eng}</strong> - ${w.kor}</li>`;
+            }).join('');
+
+            detail.innerHTML = `
+                <div class="day-detail">
+                    <div class="day-detail-header">
+                        <span class="day-detail-title">${parseInt(m)}월 ${parseInt(d)}일 (${dayName})</span>
+                        <span class="day-detail-score">&#11088; ${scoreText}</span>
+                    </div>
+                    <ul class="day-detail-list">${listHtml}</ul>
+                    <div class="day-detail-btns">
+                        <button class="btn btn-primary" onclick="loadDayWords('${dateStr}')">이 단어로 시험보기</button>
+                    </div>
+                </div>`;
+            detail.style.display = '';
+        }
+
+        function loadDayWords(dateStr) {
+            const data = studyData[dateStr];
+            if(!data) return;
+            words = [...data.words];
+            renderWordList();
+            switchMain('words');
+        }
+
+        // ===== 스트릭 =====
+        function updateStreak() {
+            let streak = 0;
+            const today = new Date();
+            for(let i=0; i<365; i++) {
+                const d = new Date(today); d.setDate(d.getDate()-i);
+                const dateStr = d.toISOString().split('T')[0];
+                if(studyData[dateStr]) streak++;
+                else if(i>0) break;
+            }
+            const bar = document.getElementById('streakBar');
+            if(streak > 0) {
+                let msg = '';
+                if(streak >= 30) msg = `&#128293; ${streak}일 연속! 전설의 영어왕! &#128293;`;
+                else if(streak >= 7) msg = `&#128293; ${streak}일 연속 공부중! 대단해! &#128170;`;
+                else if(streak >= 3) msg = `&#11088; ${streak}일 연속! 잘하고 있어! &#128079;`;
+                else msg = `&#11088; ${streak}일째 공부중!`;
+                const totalDays = Object.keys(studyData).length;
+                msg += ` (이번 달 ${countThisMonth()}일 공부)`;
+                bar.innerHTML = msg;
+                bar.style.display = '';
+            } else { bar.style.display = 'none'; }
+        }
+
+        function countThisMonth() {
+            const now = new Date();
+            const prefix = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
+            return Object.keys(studyData).filter(d => d.startsWith(prefix)).length;
+        }
+
+        // ===== 오답노트 =====
+        function renderWrongNote() {
+            const active = Object.values(wrongWords).filter(w => w.count > 0).sort((a,b) => b.count - a.count);
+            const container = document.getElementById('wrongList');
+            const testBtn = document.getElementById('btnWrongTest');
+
+            if(active.length === 0) {
+                container.innerHTML = '<div class="wrong-empty">&#127881; 틀린 단어가 없어요! 완벽해! &#127881;</div>';
+                testBtn.style.display = 'none';
+                return;
+            }
+
+            container.innerHTML = '<ul class="wrong-list">' + active.map(w => {
+                const fire = w.count >= 3 ? '&#128293;' : '';
+                return `<li><span class="wrong-word"><strong>${w.eng}</strong> - ${w.kor}</span><span class="wrong-count">${w.count}회 틀림</span><span class="wrong-fire">${fire}</span></li>`;
+            }).join('') + '</ul>';
+            testBtn.style.display = '';
+        }
+
+        // ===== 설정 =====
+        function openSettings(){ document.getElementById('apiKeyInput').value=localStorage.getItem('gemini_api_key')||''; document.getElementById('settingsModal').classList.add('show'); }
+        function closeSettings(){ document.getElementById('settingsModal').classList.remove('show'); }
+        function saveSettings(){ const k=document.getElementById('apiKeyInput').value.trim(); if(k) localStorage.setItem('gemini_api_key',k); else localStorage.removeItem('gemini_api_key'); closeSettings(); alert('저장했어요!'); }
+        document.getElementById('settingsModal').addEventListener('click',e=>{if(e.target===e.currentTarget)closeSettings();});
+
+        if('serviceWorker' in navigator) navigator.serviceWorker.register('/sw.js');
+    </script>
+</body>
+</html>

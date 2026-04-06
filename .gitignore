@@ -1,0 +1,6 @@
+.firebase/
+.claude/
+.codex/
+.cursor/
+node_modules/
+firebase-debug.log

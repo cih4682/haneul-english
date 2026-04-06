@@ -1,0 +1,660 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>하늘이랑 영어 받아쓰기</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            padding: 20px;
+        }
+
+        .app {
+            background: white;
+            border-radius: 24px;
+            padding: 30px;
+            width: 100%;
+            max-width: 500px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        }
+
+        h1 {
+            text-align: center;
+            font-size: 24px;
+            margin-bottom: 8px;
+            color: #333;
+        }
+
+        .subtitle {
+            text-align: center;
+            color: #888;
+            font-size: 14px;
+            margin-bottom: 24px;
+        }
+
+        .screen {
+            display: none;
+        }
+
+        .screen.active {
+            display: block;
+        }
+
+        /* 단어 입력 화면 */
+        .input-row {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 12px;
+        }
+
+        .input-row input {
+            flex: 1;
+            padding: 12px 14px;
+            border: 2px solid #e0e0e0;
+            border-radius: 12px;
+            font-size: 16px;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+
+        .input-row input:focus {
+            border-color: #667eea;
+        }
+
+        .btn {
+            padding: 12px 20px;
+            border: none;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .btn:active {
+            transform: scale(0.96);
+        }
+
+        .btn-add {
+            background: #667eea;
+            color: white;
+            width: 100%;
+            margin-bottom: 16px;
+        }
+
+        .btn-add:hover {
+            background: #5a6fd6;
+        }
+
+        .word-list {
+            list-style: none;
+            margin-bottom: 20px;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        .word-list li {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 16px;
+            background: #f8f9ff;
+            border-radius: 10px;
+            margin-bottom: 8px;
+            font-size: 16px;
+        }
+
+        .word-list li .word-text {
+            flex: 1;
+        }
+
+        .word-list li .word-num {
+            color: #667eea;
+            font-weight: 700;
+            margin-right: 10px;
+            min-width: 24px;
+        }
+
+        .btn-delete {
+            background: none;
+            border: none;
+            color: #e74c3c;
+            font-size: 20px;
+            cursor: pointer;
+            padding: 0 4px;
+        }
+
+        .btn-start {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            width: 100%;
+            padding: 16px;
+            font-size: 18px;
+        }
+
+        .btn-start:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+
+        .word-count {
+            text-align: center;
+            margin-bottom: 12px;
+            color: #888;
+            font-size: 14px;
+        }
+
+        /* 시험 모드 */
+        .test-progress {
+            text-align: center;
+            font-size: 18px;
+            color: #888;
+            margin-bottom: 20px;
+        }
+
+        .test-progress span {
+            color: #667eea;
+            font-weight: 700;
+        }
+
+        .test-number {
+            text-align: center;
+            font-size: 80px;
+            font-weight: 800;
+            color: #667eea;
+            margin: 30px 0;
+        }
+
+        .test-status {
+            text-align: center;
+            font-size: 16px;
+            color: #aaa;
+            margin-bottom: 30px;
+            min-height: 24px;
+        }
+
+        .test-buttons {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .btn-speak {
+            background: #667eea;
+            color: white;
+            width: 100%;
+            padding: 18px;
+            font-size: 20px;
+        }
+
+        .btn-replay {
+            background: #f0f0f0;
+            color: #555;
+            width: 100%;
+        }
+
+        .btn-next {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            color: white;
+            width: 100%;
+            padding: 16px;
+            font-size: 18px;
+        }
+
+        .speed-control {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .speed-control label {
+            font-size: 14px;
+            color: #888;
+        }
+
+        .speed-btn {
+            padding: 6px 14px;
+            border: 2px solid #e0e0e0;
+            background: white;
+            border-radius: 8px;
+            font-size: 13px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .speed-btn.active {
+            border-color: #667eea;
+            background: #667eea;
+            color: white;
+        }
+
+        /* 정답지 */
+        .answer-list {
+            list-style: none;
+            margin-bottom: 20px;
+        }
+
+        .answer-list li {
+            display: flex;
+            align-items: center;
+            padding: 14px 16px;
+            background: #f8f9ff;
+            border-radius: 10px;
+            margin-bottom: 8px;
+            font-size: 17px;
+        }
+
+        .answer-num {
+            color: #667eea;
+            font-weight: 800;
+            font-size: 20px;
+            margin-right: 14px;
+            min-width: 30px;
+        }
+
+        .answer-eng {
+            font-weight: 700;
+            color: #333;
+            margin-right: 10px;
+        }
+
+        .answer-kor {
+            color: #888;
+        }
+
+        .btn-retry {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            width: 100%;
+            padding: 16px;
+            font-size: 18px;
+            margin-bottom: 10px;
+        }
+
+        .btn-home {
+            background: #f0f0f0;
+            color: #555;
+            width: 100%;
+        }
+
+        .answer-title {
+            text-align: center;
+            font-size: 22px;
+            font-weight: 700;
+            margin-bottom: 20px;
+            color: #333;
+        }
+
+        /* 저장된 단어장 */
+        .saved-section {
+            margin-top: 20px;
+            border-top: 2px solid #f0f0f0;
+            padding-top: 16px;
+        }
+
+        .saved-title {
+            font-size: 15px;
+            font-weight: 600;
+            color: #888;
+            margin-bottom: 10px;
+        }
+
+        .saved-list {
+            list-style: none;
+        }
+
+        .saved-list li {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 14px;
+            background: #f8f9ff;
+            border-radius: 10px;
+            margin-bottom: 6px;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .saved-list li:hover {
+            background: #eef0ff;
+        }
+
+        .saved-list li .saved-info {
+            font-size: 14px;
+            color: #555;
+        }
+
+        .saved-list li .saved-count {
+            font-size: 13px;
+            color: #aaa;
+        }
+
+        .saved-list li .saved-actions {
+            display: flex;
+            gap: 8px;
+        }
+
+        .btn-load {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 4px 12px;
+            border-radius: 6px;
+            font-size: 12px;
+            cursor: pointer;
+        }
+
+        .btn-delete-saved {
+            background: #e74c3c;
+            color: white;
+            border: none;
+            padding: 4px 10px;
+            border-radius: 6px;
+            font-size: 12px;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <div class="app">
+        <h1>하늘이랑 영어 받아쓰기</h1>
+        <p class="subtitle">단어를 듣고 받아쓰기 연습!</p>
+
+        <!-- 화면 1: 단어 입력 -->
+        <div id="screen-input" class="screen active">
+            <div class="input-row">
+                <input type="text" id="inputEng" placeholder="영어 (예: apple)" />
+                <input type="text" id="inputKor" placeholder="뜻 (예: 사과)" />
+            </div>
+            <button class="btn btn-add" onclick="addWord()">+ 단어 추가</button>
+
+            <div class="word-count" id="wordCount">단어 0개</div>
+            <ul class="word-list" id="wordList"></ul>
+
+            <button class="btn btn-start" id="btnStart" onclick="startTest()" disabled>
+                시험 시작!
+            </button>
+
+            <div class="saved-section">
+                <div class="saved-title">저장된 단어장</div>
+                <ul class="saved-list" id="savedList"></ul>
+            </div>
+        </div>
+
+        <!-- 화면 2: 시험 모드 -->
+        <div id="screen-test" class="screen">
+            <div class="test-progress">
+                <span id="testCurrent">1</span> / <span id="testTotal">10</span>
+            </div>
+
+            <div class="speed-control">
+                <label>속도:</label>
+                <button class="speed-btn" onclick="setSpeed(0.6)" data-speed="0.6">느리게</button>
+                <button class="speed-btn active" onclick="setSpeed(0.85)" data-speed="0.85">보통</button>
+                <button class="speed-btn" onclick="setSpeed(1.1)" data-speed="1.1">빠르게</button>
+            </div>
+
+            <div class="test-number" id="testNumber">1</div>
+            <div class="test-status" id="testStatus">버튼을 눌러 단어를 들어보세요</div>
+
+            <div class="test-buttons">
+                <button class="btn btn-speak" onclick="speakCurrent()">🔊 읽어주기</button>
+                <button class="btn btn-replay" onclick="replayCurrent()">🔄 다시 듣기</button>
+                <button class="btn btn-next" id="btnNext" onclick="nextWord()">다음 ➜</button>
+            </div>
+        </div>
+
+        <!-- 화면 3: 정답지 -->
+        <div id="screen-answer" class="screen">
+            <div class="answer-title">📋 정답지</div>
+            <ul class="answer-list" id="answerList"></ul>
+            <button class="btn btn-retry" onclick="retryTest()">🔄 같은 단어로 다시 시험</button>
+            <button class="btn btn-home" onclick="goHome()">🏠 처음으로</button>
+        </div>
+    </div>
+
+    <script>
+        let words = [];           // {eng, kor}
+        let shuffled = [];        // 랜덤 배열
+        let currentIndex = 0;
+        let speechRate = 0.85;
+        let hasSpoken = false;
+
+        // --- 단어 입력 ---
+        const inputEng = document.getElementById('inputEng');
+        const inputKor = document.getElementById('inputKor');
+
+        // 엔터키로 추가
+        inputEng.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                if (inputEng.value.trim() && inputKor.value.trim()) {
+                    addWord();
+                } else {
+                    inputKor.focus();
+                }
+            }
+        });
+        inputKor.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') addWord();
+        });
+
+        function addWord() {
+            const eng = inputEng.value.trim();
+            const kor = inputKor.value.trim();
+            if (!eng || !kor) return;
+
+            words.push({ eng, kor });
+            inputEng.value = '';
+            inputKor.value = '';
+            inputEng.focus();
+            renderWordList();
+        }
+
+        function removeWord(index) {
+            words.splice(index, 1);
+            renderWordList();
+        }
+
+        function renderWordList() {
+            const list = document.getElementById('wordList');
+            list.innerHTML = words.map((w, i) => `
+                <li>
+                    <span class="word-num">${i + 1}</span>
+                    <span class="word-text"><strong>${w.eng}</strong> - ${w.kor}</span>
+                    <button class="btn-delete" onclick="removeWord(${i})">✕</button>
+                </li>
+            `).join('');
+
+            document.getElementById('wordCount').textContent = `단어 ${words.length}개`;
+            document.getElementById('btnStart').disabled = words.length === 0;
+        }
+
+        // --- 시험 시작 ---
+        function startTest() {
+            if (words.length === 0) return;
+
+            // 저장
+            saveWordSet();
+
+            // 셔플
+            shuffled = [...words].sort(() => Math.random() - 0.5);
+            currentIndex = 0;
+            hasSpoken = false;
+
+            document.getElementById('testTotal').textContent = shuffled.length;
+            updateTestUI();
+            showScreen('screen-test');
+        }
+
+        function updateTestUI() {
+            document.getElementById('testCurrent').textContent = currentIndex + 1;
+            document.getElementById('testNumber').textContent = currentIndex + 1;
+            document.getElementById('testStatus').textContent = '버튼을 눌러 단어를 들어보세요';
+            hasSpoken = false;
+        }
+
+        function speakCurrent() {
+            if (currentIndex >= shuffled.length) return;
+            const word = shuffled[currentIndex].eng;
+            speak(word);
+            document.getElementById('testStatus').textContent = '읽었습니다! 받아쓰세요 ✍️';
+            hasSpoken = true;
+        }
+
+        function replayCurrent() {
+            if (!hasSpoken) {
+                document.getElementById('testStatus').textContent = '먼저 읽어주기를 눌러주세요';
+                return;
+            }
+            if (currentIndex >= shuffled.length) return;
+            speak(shuffled[currentIndex].eng);
+            document.getElementById('testStatus').textContent = '다시 읽었습니다! ✍️';
+        }
+
+        function nextWord() {
+            if (!hasSpoken) {
+                document.getElementById('testStatus').textContent = '먼저 읽어주기를 눌러주세요!';
+                return;
+            }
+
+            currentIndex++;
+            if (currentIndex >= shuffled.length) {
+                showAnswer();
+                return;
+            }
+            updateTestUI();
+        }
+
+        // --- TTS ---
+        function speak(text) {
+            speechSynthesis.cancel();
+            const utter = new SpeechSynthesisUtterance(text);
+            utter.lang = 'en-US';
+            utter.rate = speechRate;
+            utter.pitch = 1;
+
+            // 영어 음성 선택
+            const voices = speechSynthesis.getVoices();
+            const enVoice = voices.find(v => v.lang.startsWith('en') && v.name.includes('Female'))
+                || voices.find(v => v.lang.startsWith('en-US'))
+                || voices.find(v => v.lang.startsWith('en'));
+            if (enVoice) utter.voice = enVoice;
+
+            speechSynthesis.speak(utter);
+        }
+
+        // 음성 목록 로드
+        speechSynthesis.onvoiceschanged = () => speechSynthesis.getVoices();
+
+        function setSpeed(rate) {
+            speechRate = rate;
+            document.querySelectorAll('.speed-btn').forEach(btn => {
+                btn.classList.toggle('active', parseFloat(btn.dataset.speed) === rate);
+            });
+        }
+
+        // --- 정답지 ---
+        function showAnswer() {
+            const list = document.getElementById('answerList');
+            list.innerHTML = shuffled.map((w, i) => `
+                <li>
+                    <span class="answer-num">${i + 1}</span>
+                    <span class="answer-eng">${w.eng}</span>
+                    <span class="answer-kor">- ${w.kor}</span>
+                </li>
+            `).join('');
+            showScreen('screen-answer');
+        }
+
+        function retryTest() {
+            // 같은 단어, 새로운 랜덤 순서
+            shuffled = [...words].sort(() => Math.random() - 0.5);
+            currentIndex = 0;
+            hasSpoken = false;
+            document.getElementById('testTotal').textContent = shuffled.length;
+            updateTestUI();
+            showScreen('screen-test');
+        }
+
+        function goHome() {
+            showScreen('screen-input');
+        }
+
+        // --- 화면 전환 ---
+        function showScreen(id) {
+            document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+            document.getElementById(id).classList.add('active');
+        }
+
+        // --- 단어장 저장/불러오기 (localStorage) ---
+        function saveWordSet() {
+            const saved = JSON.parse(localStorage.getItem('wordSets') || '[]');
+            const today = new Date().toLocaleDateString('ko-KR');
+            // 같은 날짜 있으면 업데이트
+            const existing = saved.findIndex(s => s.date === today);
+            if (existing >= 0) {
+                saved[existing].words = [...words];
+            } else {
+                saved.unshift({ date: today, words: [...words] });
+            }
+            // 최대 20개
+            if (saved.length > 20) saved.pop();
+            localStorage.setItem('wordSets', JSON.stringify(saved));
+            renderSavedList();
+        }
+
+        function loadWordSet(index) {
+            const saved = JSON.parse(localStorage.getItem('wordSets') || '[]');
+            if (saved[index]) {
+                words = [...saved[index].words];
+                renderWordList();
+            }
+        }
+
+        function deleteSavedSet(index) {
+            const saved = JSON.parse(localStorage.getItem('wordSets') || '[]');
+            saved.splice(index, 1);
+            localStorage.setItem('wordSets', JSON.stringify(saved));
+            renderSavedList();
+        }
+
+        function renderSavedList() {
+            const saved = JSON.parse(localStorage.getItem('wordSets') || '[]');
+            const list = document.getElementById('savedList');
+            if (saved.length === 0) {
+                list.innerHTML = '<li style="cursor:default;color:#aaa;font-size:13px;">저장된 단어장이 없습니다</li>';
+                return;
+            }
+            list.innerHTML = saved.map((s, i) => `
+                <li>
+                    <div>
+                        <div class="saved-info">${s.date}</div>
+                        <div class="saved-count">${s.words.length}개 단어</div>
+                    </div>
+                    <div class="saved-actions">
+                        <button class="btn-load" onclick="loadWordSet(${i})">불러오기</button>
+                        <button class="btn-delete-saved" onclick="deleteSavedSet(${i})">삭제</button>
+                    </div>
+                </li>
+            `).join('');
+        }
+
+        // 초기화
+        renderSavedList();
+    </script>
+</body>
+</html>
