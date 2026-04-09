@@ -156,12 +156,22 @@
         .day-detail-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
         .day-detail-title { font-size: 16px; font-weight: 700; color: #2d3436; }
         .day-detail-score { font-size: 14px; color: #636e72; }
-        .day-detail-list { list-style: none; }
-        .day-detail-list li { display: flex; align-items: center; padding: 8px 12px; background: white; border-radius: 10px; margin-bottom: 4px; font-size: 14px; }
+        .day-detail-list { list-style: none; max-height: 300px; overflow-y: auto; }
+        .day-detail-list li { display: flex; align-items: center; padding: 8px 10px; background: white; border-radius: 10px; margin-bottom: 4px; font-size: 14px; gap: 6px; }
         .day-detail-list li.correct { background: #e8f5e9; }
         .day-detail-list li.wrong { background: #fce4ec; }
-        .day-detail-list .mark { margin-right: 8px; font-size: 16px; }
-        .day-detail-btns { display: flex; gap: 8px; margin-top: 10px; }
+        .day-detail-list .mark { font-size: 16px; flex-shrink: 0; }
+        .day-detail-list .dd-word { flex: 1; min-width: 0; }
+        .day-detail-list .dd-actions { display: flex; gap: 4px; flex-shrink: 0; }
+        .day-detail-list .dd-btn { background: none; border: none; font-size: 15px; cursor: pointer; padding: 2px 4px; border-radius: 6px; transition: background 0.2s; }
+        .day-detail-list .dd-btn:hover { background: rgba(0,0,0,0.06); }
+        .day-detail-list .dd-check { width: 22px; height: 22px; accent-color: #e74c3c; cursor: pointer; flex-shrink: 0; }
+        .day-detail-list .dd-edit-row { display: flex; gap: 4px; flex: 1; }
+        .day-detail-list .dd-edit-input { padding: 4px 8px; border: 2px solid #f39c12; border-radius: 8px; font-size: 13px; font-family: 'Jua', sans-serif; flex: 1; min-width: 0; }
+        .dd-select-bar { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; font-size: 13px; color: #636e72; }
+        .dd-select-bar label { display: flex; align-items: center; gap: 4px; cursor: pointer; }
+        .dd-select-bar .dd-sel-count { margin-left: auto; color: #e74c3c; font-weight: 700; }
+        .day-detail-btns { display: flex; flex-direction: column; gap: 8px; margin-top: 10px; }
         .day-detail-btns .btn { font-size: 14px; padding: 10px; }
 
         /* 오답노트 */
@@ -202,6 +212,13 @@
         .modal .help { font-size: 12px; color: #b2bec3; margin-top: 4px; }
         .settings-btn { position: absolute; top: 16px; right: 16px; background: rgba(0,0,0,0.05); border: none; font-size: 22px; cursor: pointer; color: #b2bec3; width: 38px; height: 38px; border-radius: 50%; display: flex; align-items: center; justify-content: center; transition: all 0.2s; }
         .settings-btn:hover { background: rgba(0,0,0,0.1); color: #636e72; }
+
+        /* 확인 모달 */
+        .confirm-modal { text-align: center; padding: 32px 28px 24px; max-width: 320px; }
+        .confirm-icon { font-size: 48px; margin-bottom: 12px; }
+        .confirm-msg { font-size: 17px; color: #2d3436; margin-bottom: 6px; }
+        .confirm-word { font-size: 15px; color: #e74c3c; font-weight: 700; margin-bottom: 20px; padding: 10px; background: #fce4ec; border-radius: 12px; }
+        .confirm-btns { display: flex; gap: 10px; }
     </style>
 </head>
 <body>
@@ -288,7 +305,7 @@
                 <div class="wrong-note" style="border:none; margin-top:14px; padding-top:0;">
                     <div class="wrong-title">&#128213; 오답노트</div>
                     <div id="wrongList"></div>
-                    <button class="btn btn-danger" id="btnWrongTest" onclick="startWrongTest()" style="margin-top:12px; display:none;">&#128293; 틀린 단어 시험 보기</button>
+                    <button class="btn btn-danger" id="btnWrongTest" onclick="startWrongTest()" style="margin-top:12px; display:none;">&#128293; 틀린 단어 모아서 시험 보기</button>
                 </div>
             </div>
         </div>
@@ -338,6 +355,19 @@
         </div>
     </div>
 
+    <!-- 확인 모달 -->
+    <div class="modal-overlay" id="confirmModal">
+        <div class="modal confirm-modal">
+            <div class="confirm-icon" id="confirmIcon">&#128465;</div>
+            <div class="confirm-msg" id="confirmMsg"></div>
+            <div class="confirm-word" id="confirmWord"></div>
+            <div class="confirm-btns">
+                <button class="btn btn-secondary" onclick="confirmCancel()" style="flex:1;">취소</button>
+                <button class="btn btn-danger" onclick="confirmOk()" style="flex:1;">삭제</button>
+            </div>
+        </div>
+    </div>
+
     <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
@@ -365,6 +395,7 @@
         let studyData = {};   // { 'YYYY-MM-DD': { words, grades, score } }
         let wrongWords = {};  // { 'eng': { eng, kor, count, lastDate } }
         let isWrongTest = false;
+        let testSourceDate = null;  // 재시험 시 원래 날짜 추적
 
         // ===== 로그인 =====
         function googleLogin() { auth.signInWithPopup(new firebase.auth.GoogleAuthProvider()).catch(err => alert('로그인 실패: ' + err.message)); }
@@ -409,12 +440,47 @@
         function addWord() {
             const eng=document.getElementById('inputEng').value.trim(), kor=document.getElementById('inputKor').value.trim();
             if(!eng||!kor) return;
+            testSourceDate = null;
             words.push({eng,kor}); document.getElementById('inputEng').value=''; document.getElementById('inputKor').value='';
             document.getElementById('inputEng').focus(); renderWordList();
+            saveTodayWords(); // 추가할 때마다 즉시 저장
         }
-        function removeWord(i) { words.splice(i,1); renderWordList(); }
+        function removeWord(i) {
+            words.splice(i,1); renderWordList();
+            if(!testSourceDate) saveTodayWords(); // 삭제도 즉시 반영
+        }
+        let editingIndex = -1;
+        function startEdit(i) {
+            editingIndex = i;
+            renderWordList();
+            setTimeout(()=>{ const el=document.getElementById('editEng'+i); if(el) el.focus(); },50);
+        }
+        function cancelEdit() { editingIndex=-1; renderWordList(); }
+        function saveEdit(i) {
+            const eng=document.getElementById('editEng'+i).value.trim();
+            const kor=document.getElementById('editKor'+i).value.trim();
+            if(!eng||!kor) return;
+            words[i]={eng,kor}; editingIndex=-1; renderWordList();
+            if(!testSourceDate) saveTodayWords(); // 수정도 즉시 반영
+        }
         function renderWordList() {
-            document.getElementById('wordList').innerHTML = words.map((w,i) => `<li><span class="num">${i+1}</span><span class="text"><strong>${w.eng}</strong> - ${w.kor}</span><button class="del" onclick="removeWord(${i})">&#10005;</button></li>`).join('');
+            document.getElementById('wordList').innerHTML = words.map((w,i) => {
+                if(editingIndex===i) {
+                    return `<li style="flex-wrap:wrap;gap:6px;">
+                        <span class="num">${i+1}</span>
+                        <input type="text" id="editEng${i}" value="${w.eng}" style="flex:1;padding:8px 10px;border:2px solid #f39c12;border-radius:10px;font-size:14px;font-family:'Jua',sans-serif;min-width:0;" />
+                        <input type="text" id="editKor${i}" value="${w.kor}" style="flex:1;padding:8px 10px;border:2px solid #f39c12;border-radius:10px;font-size:14px;font-family:'Jua',sans-serif;min-width:0;"
+                            onkeydown="if(event.key==='Enter')saveEdit(${i})" />
+                        <button onclick="saveEdit(${i})" style="background:#2ecc71;color:white;border:none;width:28px;height:28px;border-radius:50%;font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center;">&#10003;</button>
+                        <button onclick="cancelEdit()" style="background:#b2bec3;color:white;border:none;width:28px;height:28px;border-radius:50%;font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center;">&#10005;</button>
+                    </li>`;
+                }
+                return `<li>
+                    <span class="num">${i+1}</span>
+                    <span class="text" onclick="startEdit(${i})" style="cursor:pointer;"><strong>${w.eng}</strong> - ${w.kor}</span>
+                    <button class="del" onclick="removeWord(${i})" title="삭제">&#128465;</button>
+                </li>`;
+            }).join('');
             document.getElementById('wordCount').textContent = `단어 ${words.length}개`;
             document.getElementById('btnStart').disabled = words.length === 0;
         }
@@ -463,8 +529,10 @@
                 if(m){
                     const ex=JSON.parse(m[0]);
                     if(ex.length === 0) { alert('사진에서 단어를 찾지 못했어요.\n교재의 단어 부분이 잘 보이게 다시 찍어보세요!'); return; }
+                    testSourceDate = null;
                     ex.forEach(w=>{if(w.eng&&w.kor) words.push({eng:w.eng.trim(),kor:w.kor.trim()});});
                     renderWordList();
+                    saveTodayWords(); // 사진 추출 단어도 즉시 저장
                     alert(`${ex.length}개 단어를 찾았어요!`);
                 } else { alert('단어를 찾지 못했어요.\n교재의 단어 부분이 잘 보이게 다시 찍어보세요!'); }
             } catch(err){ alert('오류: '+err.message); }
@@ -476,6 +544,8 @@
         function startTest() {
             if(words.length===0) return;
             isWrongTest = false;
+            testSourceDate = null; // 직접 입력한 단어 → 오늘에 저장
+            saveTodayWords(); // 오늘 날짜에 단어 누적 저장
             shuffled=[...words].sort(()=>Math.random()-0.5);
             currentIndex=0; hasSpoken=false; grades={};
             document.getElementById('testTotal').textContent=shuffled.length;
@@ -483,10 +553,12 @@
         }
 
         function startWrongTest() {
-            const ww = Object.values(wrongWords).filter(w => w.count > 0);
-            if(ww.length===0) return;
+            const allWrong = getAllWrongWords();
+            if(allWrong.length===0) return;
             isWrongTest = true;
-            words = ww.map(w => ({eng:w.eng, kor:w.kor}));
+            testSourceDate = null;
+            // 중복 제거된 틀린 단어 목록
+            words = allWrong.map(w => ({eng:w.eng, kor:w.kor}));
             shuffled = [...words].sort(()=>Math.random()-0.5);
             currentIndex=0; hasSpoken=false; grades={};
             document.getElementById('testTotal').textContent=shuffled.length;
@@ -580,13 +652,46 @@
             const setsSnap = await db.collection('users').doc(currentUser.uid).collection('wordsets').get();
             studyData = {};
             setsSnap.forEach(doc => { const d=doc.data(); studyData[d.date] = { id:doc.id, words:d.words, grades:d.grades||null, score:d.score||null }; });
-            // 오답노트 로드
-            const wrongSnap = await db.collection('users').doc(currentUser.uid).collection('wrongWords').get();
-            wrongWords = {};
-            wrongSnap.forEach(doc => { const d=doc.data(); wrongWords[d.eng] = { eng:d.eng, kor:d.kor, count:d.count, lastDate:d.lastDate }; });
             renderCalendar();
             renderWrongNote();
             updateStreak();
+        }
+
+        // 오늘 날짜에 단어 저장 (현재 words 상태를 그대로 반영)
+        let _saveTimer = null;
+        function saveTodayWords() {
+            // 디바운스: 빠르게 연속 추가/삭제 시 마지막 것만 저장
+            clearTimeout(_saveTimer);
+            _saveTimer = setTimeout(_doSaveTodayWords, 300);
+        }
+        async function _doSaveTodayWords() {
+            if(!currentUser) return;
+            const today = new Date().toISOString().split('T')[0];
+            const ref = db.collection('users').doc(currentUser.uid).collection('wordsets');
+            const snap = await ref.where('date','==',today).get();
+
+            if(!snap.empty) {
+                // 기존 Firestore 단어 + 현재 화면 단어 합치기 (중복 제거)
+                const existing = snap.docs[0].data().words || [];
+                // 기존에 저장된 단어 중 현재 화면에도 있는 것 = 유지/수정
+                // 현재 화면에 새로 추가된 것 = 추가
+                // 기존에 있었지만 화면에서 삭제된 것: 이번 세션에서 입력한 것만 삭제 가능
+                // → 심플하게: 기존 + 현재 화면 합치기, 중복은 현재 화면 것 우선
+                const mergedMap = new Map();
+                existing.forEach(w => mergedMap.set(w.eng.toLowerCase(), w));
+                words.forEach(w => mergedMap.set(w.eng.toLowerCase(), w));
+                const merged = Array.from(mergedMap.values());
+                await snap.docs[0].ref.update({ words: merged, updatedAt: firebase.firestore.FieldValue.serverTimestamp() });
+            } else {
+                if(words.length === 0) return;
+                await ref.add({ date: today, words: [...words], createdAt: firebase.firestore.FieldValue.serverTimestamp(), updatedAt: firebase.firestore.FieldValue.serverTimestamp() });
+            }
+            // 로컬 캐시도 업데이트
+            const snap2 = await ref.where('date','==',today).get();
+            if(!snap2.empty) {
+                const d = snap2.docs[0].data();
+                studyData[today] = { id:snap2.docs[0].id, words:d.words, grades:d.grades||null, score:d.score||null };
+            }
         }
 
         async function saveGrades() {
@@ -594,35 +699,38 @@
             const today = new Date().toISOString().split('T')[0];
             const ref = db.collection('users').doc(currentUser.uid).collection('wordsets');
 
-            // 채점 결과 저장
+            // 채점 결과 만들기
             const gradeMap = {};
             shuffled.forEach((w,i) => { gradeMap[w.eng] = grades[i]; });
             const correct = Object.values(grades).filter(g=>g==='o').length;
             const total = shuffled.length;
 
-            const snap = await ref.where('date','==',today).get();
-            const data = { words: shuffled, grades: gradeMap, score: { correct, total }, updatedAt: firebase.firestore.FieldValue.serverTimestamp() };
-            if(!snap.empty) { await snap.docs[0].ref.update(data); }
-            else { data.date = today; data.createdAt = firebase.firestore.FieldValue.serverTimestamp(); await ref.add(data); }
+            // 저장할 날짜 결정: 과거 날짜 재시험이면 그 날짜, 아니면 오늘
+            const targetDate = testSourceDate || today;
+            const snap = await ref.where('date','==',targetDate).get();
 
-            // 오답노트 업데이트
-            const wrongRef = db.collection('users').doc(currentUser.uid).collection('wrongWords');
-            for(const w of shuffled) {
-                const g = gradeMap[w.eng];
-                const docId = w.eng.toLowerCase().replace(/[^a-z0-9]/g,'_');
-                if(g === 'x') {
-                    const existing = wrongWords[w.eng];
-                    const newCount = (existing ? existing.count : 0) + 1;
-                    await wrongRef.doc(docId).set({ eng:w.eng, kor:w.kor, count:newCount, lastDate:today }, {merge:true});
-                } else if(g === 'o') {
-                    const existing = wrongWords[w.eng];
-                    if(existing && existing.count > 0) {
-                        const newCount = existing.count - 1;
-                        if(newCount <= 0) { await wrongRef.doc(docId).delete(); }
-                        else { await wrongRef.doc(docId).update({count:newCount}); }
-                    }
-                }
+            if(!snap.empty) {
+                // 기존 채점 결과에 병합 (기존 grades 유지 + 새 grades 추가/덮어쓰기)
+                const existingData = snap.docs[0].data();
+                const mergedGrades = { ...(existingData.grades || {}), ...gradeMap };
+                const allCorrect = Object.values(mergedGrades).filter(g=>g==='o').length;
+                const allTotal = Object.keys(mergedGrades).length;
+                await snap.docs[0].ref.update({
+                    grades: mergedGrades,
+                    score: { correct: allCorrect, total: allTotal },
+                    updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+                });
+            } else {
+                await ref.add({
+                    date: targetDate,
+                    words: [...shuffled],
+                    grades: gradeMap,
+                    score: { correct, total },
+                    createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+                    updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+                });
             }
+
             await loadAllData();
         }
 
@@ -658,21 +766,61 @@
             document.getElementById('calDays').innerHTML = html;
         }
 
+        let ddSelectedDate = null;
+        let ddSelected = new Set();  // 선택된 단어 인덱스
+        let ddEditIndex = -1;
+
         function showDayDetail(dateStr) {
             const data = studyData[dateStr];
             const detail = document.getElementById('dayDetail');
             if(!data) { detail.style.display='none'; return; }
+            ddSelectedDate = dateStr;
+            ddSelected = new Set(data.words.map((_,i) => i)); // 기본: 전체 선택
+            ddEditIndex = -1;
+            renderDayDetail();
+            detail.style.display = '';
+        }
 
-            const [y,m,d] = dateStr.split('-');
+        function renderDayDetail() {
+            const data = studyData[ddSelectedDate];
+            if(!data) return;
+            const detail = document.getElementById('dayDetail');
+            const [y,m,d] = ddSelectedDate.split('-');
             const dayNames = ['일','월','화','수','목','금','토'];
             const dayName = dayNames[new Date(parseInt(y),parseInt(m)-1,parseInt(d)).getDay()];
             const scoreText = data.score ? `${data.score.correct}/${data.score.total}` : '미채점';
+            const allChecked = ddSelected.size === data.words.length;
+            const wrongIndices = data.words.map((w,i) => (data.grades && data.grades[w.eng] === 'x') ? i : -1).filter(i => i >= 0);
 
-            let listHtml = data.words.map(w => {
+            let listHtml = data.words.map((w, i) => {
                 const g = data.grades ? data.grades[w.eng] : null;
                 const cls = g==='o' ? 'correct' : g==='x' ? 'wrong' : '';
-                const mark = g==='o' ? '&#9989;' : g==='x' ? '&#10060;' : '&#9898;';
-                return `<li class="${cls}"><span class="mark">${mark}</span><strong>${w.eng}</strong> - ${w.kor}</li>`;
+                const mark = g==='o' ? '<span style="color:#e74c3c;font-size:20px;font-weight:900;">O</span>' : g==='x' ? '<span style="color:#3498db;font-size:20px;font-weight:900;">X</span>' : '<span style="color:#b2bec3;font-size:16px;">&#9898;</span>';
+                const checked = ddSelected.has(i) ? 'checked' : '';
+
+                if(ddEditIndex === i) {
+                    return `<li class="${cls}">
+                        <input type="checkbox" class="dd-check" ${checked} onchange="ddToggle(${i})">
+                        <div class="dd-edit-row">
+                            <input type="text" class="dd-edit-input" id="ddEditEng${i}" value="${w.eng}" />
+                            <input type="text" class="dd-edit-input" id="ddEditKor${i}" value="${w.kor}" onkeydown="if(event.key==='Enter')ddSaveEdit(${i})" />
+                        </div>
+                        <div class="dd-actions">
+                            <button class="dd-btn" onclick="ddSaveEdit(${i})" title="저장">&#10003;</button>
+                            <button class="dd-btn" onclick="ddCancelEdit()" title="취소">&#10005;</button>
+                        </div>
+                    </li>`;
+                }
+
+                return `<li class="${cls}">
+                    <input type="checkbox" class="dd-check" ${checked} onchange="ddToggle(${i})">
+                    <span class="mark">${mark}</span>
+                    <span class="dd-word"><strong>${w.eng}</strong> - ${w.kor}</span>
+                    <div class="dd-actions">
+                        <button class="dd-btn" onclick="ddStartEdit(${i})" title="수정">&#9998;</button>
+                        <button class="dd-btn" onclick="ddDeleteWord(${i})" title="삭제">&#128465;</button>
+                    </div>
+                </li>`;
             }).join('');
 
             detail.innerHTML = `
@@ -681,18 +829,121 @@
                         <span class="day-detail-title">${parseInt(m)}월 ${parseInt(d)}일 (${dayName})</span>
                         <span class="day-detail-score">&#11088; ${scoreText}</span>
                     </div>
+                    <div class="dd-select-bar">
+                        <label><input type="checkbox" ${allChecked?'checked':''} onchange="ddToggleAll(this.checked)" style="accent-color:#e74c3c;"> 전체 선택</label>
+                        <span class="dd-sel-count">${ddSelected.size}개 선택</span>
+                    </div>
                     <ul class="day-detail-list">${listHtml}</ul>
                     <div class="day-detail-btns">
-                        <button class="btn btn-primary" onclick="loadDayWords('${dateStr}')">이 단어로 시험보기</button>
+                        <button class="btn btn-primary" onclick="ddTestSelected()">&#127919; 선택한 ${ddSelected.size}개로 시험보기</button>
+                        <button class="btn btn-secondary" onclick="ddTestAll()">전체 ${data.words.length}개 시험보기</button>
+                        ${wrongIndices.length > 0 ? `<button class="btn btn-danger" onclick="ddTestWrong()">&#10060; 틀린 ${wrongIndices.length}개만 시험보기</button>` : ''}
                     </div>
                 </div>`;
-            detail.style.display = '';
+
+            if(ddEditIndex >= 0) {
+                setTimeout(()=>{ const el=document.getElementById('ddEditEng'+ddEditIndex); if(el) el.focus(); }, 50);
+            }
+        }
+
+        function ddToggle(i) { ddSelected.has(i) ? ddSelected.delete(i) : ddSelected.add(i); renderDayDetail(); }
+        function ddToggleAll(checked) { const data=studyData[ddSelectedDate]; if(!data) return; ddSelected = checked ? new Set(data.words.map((_,i)=>i)) : new Set(); renderDayDetail(); }
+
+        function ddStartEdit(i) { ddEditIndex = i; renderDayDetail(); }
+        function ddCancelEdit() { ddEditIndex = -1; renderDayDetail(); }
+        async function ddSaveEdit(i) {
+            const eng = document.getElementById('ddEditEng'+i).value.trim();
+            const kor = document.getElementById('ddEditKor'+i).value.trim();
+            if(!eng || !kor) return;
+            const data = studyData[ddSelectedDate];
+            data.words[i] = { eng, kor };
+            ddEditIndex = -1;
+            // Firestore 업데이트
+            if(currentUser && data.id) {
+                await db.collection('users').doc(currentUser.uid).collection('wordsets').doc(data.id).update({ words: data.words, updatedAt: firebase.firestore.FieldValue.serverTimestamp() });
+            }
+            renderDayDetail();
+            renderCalendar();
+        }
+
+        // 커스텀 확인 모달
+        let _confirmResolve = null;
+        function showConfirmModal(word) {
+            document.getElementById('confirmMsg').textContent = '이 단어를 삭제할까요?';
+            document.getElementById('confirmWord').textContent = `${word.eng} - ${word.kor}`;
+            document.getElementById('confirmModal').classList.add('show');
+            return new Promise(resolve => { _confirmResolve = resolve; });
+        }
+        function confirmOk() { document.getElementById('confirmModal').classList.remove('show'); if(_confirmResolve) _confirmResolve(true); _confirmResolve=null; }
+        function confirmCancel() { document.getElementById('confirmModal').classList.remove('show'); if(_confirmResolve) _confirmResolve(false); _confirmResolve=null; }
+        document.getElementById('confirmModal').addEventListener('click', e => { if(e.target===e.currentTarget) confirmCancel(); });
+
+        async function ddDeleteWord(i) {
+            const data = studyData[ddSelectedDate];
+            if(!data) return;
+            const w = data.words[i];
+            const ok = await showConfirmModal(w);
+            if(!ok) return;
+            data.words.splice(i, 1);
+            ddSelected.delete(i);
+            const newSelected = new Set();
+            ddSelected.forEach(idx => { if(idx < i) newSelected.add(idx); else if(idx > i) newSelected.add(idx-1); });
+            ddSelected = newSelected;
+            if(currentUser && data.id) {
+                if(data.words.length === 0) {
+                    await db.collection('users').doc(currentUser.uid).collection('wordsets').doc(data.id).delete();
+                    delete studyData[ddSelectedDate];
+                    document.getElementById('dayDetail').style.display = 'none';
+                } else {
+                    await db.collection('users').doc(currentUser.uid).collection('wordsets').doc(data.id).update({ words: data.words, updatedAt: firebase.firestore.FieldValue.serverTimestamp() });
+                    renderDayDetail();
+                }
+            }
+            renderCalendar();
+        }
+
+        function ddTestSelected() {
+            const data = studyData[ddSelectedDate]; if(!data) return;
+            const selected = data.words.filter((_,i) => ddSelected.has(i));
+            if(selected.length === 0) { alert('시험 볼 단어를 선택해주세요!'); return; }
+            words = [...selected];
+            testSourceDate = ddSelectedDate;
+            isWrongTest = false;
+            shuffled = [...words].sort(() => Math.random()-0.5);
+            currentIndex=0; hasSpoken=false; grades={};
+            document.getElementById('testTotal').textContent=shuffled.length;
+            updateTestUI(); showScreen('screen-test');
+        }
+
+        function ddTestAll() {
+            const data = studyData[ddSelectedDate]; if(!data) return;
+            words = [...data.words];
+            testSourceDate = ddSelectedDate;
+            isWrongTest = false;
+            shuffled = [...words].sort(() => Math.random()-0.5);
+            currentIndex=0; hasSpoken=false; grades={};
+            document.getElementById('testTotal').textContent=shuffled.length;
+            updateTestUI(); showScreen('screen-test');
+        }
+
+        function ddTestWrong() {
+            const data = studyData[ddSelectedDate]; if(!data || !data.grades) return;
+            const wrongOnes = data.words.filter(w => data.grades[w.eng] === 'x');
+            if(wrongOnes.length === 0) return;
+            words = [...wrongOnes];
+            testSourceDate = ddSelectedDate;
+            isWrongTest = false;
+            shuffled = [...words].sort(() => Math.random()-0.5);
+            currentIndex=0; hasSpoken=false; grades={};
+            document.getElementById('testTotal').textContent=shuffled.length;
+            updateTestUI(); showScreen('screen-test');
         }
 
         function loadDayWords(dateStr) {
             const data = studyData[dateStr];
             if(!data) return;
             words = [...data.words];
+            testSourceDate = dateStr;
             renderWordList();
             switchMain('words');
         }
@@ -727,22 +978,78 @@
             return Object.keys(studyData).filter(d => d.startsWith(prefix)).length;
         }
 
-        // ===== 오답노트 =====
+        // ===== 오답노트 (날짜별) =====
+        function getWrongByDate() {
+            // studyData에서 날짜별로 X인 단어 추출
+            const result = []; // [{ date, words: [{eng, kor}] }]
+            const dates = Object.keys(studyData).sort().reverse();
+            for(const date of dates) {
+                const data = studyData[date];
+                if(!data || !data.grades) continue;
+                const wrongOnes = data.words.filter(w => data.grades[w.eng] === 'x');
+                if(wrongOnes.length > 0) {
+                    result.push({ date, words: wrongOnes, total: data.words.length });
+                }
+            }
+            return result;
+        }
+
+        function getAllWrongWords() {
+            // 모든 날짜의 틀린 단어를 합치기 (중복 제거, 횟수 누적)
+            const map = new Map();
+            const dates = Object.keys(studyData).sort();
+            for(const date of dates) {
+                const data = studyData[date];
+                if(!data || !data.grades) continue;
+                for(const w of data.words) {
+                    if(data.grades[w.eng] === 'x') {
+                        const key = w.eng.toLowerCase();
+                        if(map.has(key)) { map.get(key).count++; map.get(key).lastDate = date; }
+                        else { map.set(key, { eng:w.eng, kor:w.kor, count:1, lastDate:date }); }
+                    }
+                }
+            }
+            return Array.from(map.values()).sort((a,b) => b.count - a.count);
+        }
+
         function renderWrongNote() {
-            const active = Object.values(wrongWords).filter(w => w.count > 0).sort((a,b) => b.count - a.count);
+            const byDate = getWrongByDate();
+            const allWrong = getAllWrongWords();
             const container = document.getElementById('wrongList');
             const testBtn = document.getElementById('btnWrongTest');
 
-            if(active.length === 0) {
+            if(allWrong.length === 0) {
                 container.innerHTML = '<div class="wrong-empty">&#127881; 틀린 단어가 없어요! 완벽해! &#127881;</div>';
                 testBtn.style.display = 'none';
                 return;
             }
 
-            container.innerHTML = '<ul class="wrong-list">' + active.map(w => {
-                const fire = w.count >= 3 ? '&#128293;' : '';
-                return `<li><span class="wrong-word"><strong>${w.eng}</strong> - ${w.kor}</span><span class="wrong-count">${w.count}회 틀림</span><span class="wrong-fire">${fire}</span></li>`;
-            }).join('') + '</ul>';
+            // 누적 요약
+            let html = '<div style="padding:10px 14px;background:linear-gradient(135deg,#fab1a0,#e74c3c);border-radius:14px;color:white;font-size:14px;margin-bottom:12px;text-align:center;">';
+            html += `총 <strong>${allWrong.length}개</strong> 틀린 단어`;
+            const danger = allWrong.filter(w => w.count >= 2).length;
+            if(danger > 0) html += ` (${danger}개 주의!)`;
+            html += '</div>';
+
+            // 날짜별 그룹
+            for(const group of byDate) {
+                const [y,m,d] = group.date.split('-');
+                const dayNames = ['일','월','화','수','목','금','토'];
+                const dayName = dayNames[new Date(parseInt(y),parseInt(m)-1,parseInt(d)).getDay()];
+                html += `<div style="font-size:13px;color:#636e72;font-weight:700;margin:10px 0 6px;display:flex;justify-content:space-between;">`;
+                html += `<span>${parseInt(m)}월 ${parseInt(d)}일 (${dayName})</span>`;
+                html += `<span style="color:#e74c3c;">${group.words.length}개 / ${group.total}개</span></div>`;
+                html += '<ul class="wrong-list">';
+                for(const w of group.words) {
+                    const total = allWrong.find(a => a.eng.toLowerCase() === w.eng.toLowerCase());
+                    const count = total ? total.count : 1;
+                    const icon = count >= 5 ? '&#9889;' : count >= 4 ? '&#129435;' : count >= 3 ? '&#129430;' : count >= 2 ? '&#128293;' : '';
+                    html += `<li><span class="wrong-word"><strong>${w.eng}</strong> - ${w.kor}</span><span class="wrong-count">${count}회 틀림</span><span class="wrong-fire">${icon}</span></li>`;
+                }
+                html += '</ul>';
+            }
+
+            container.innerHTML = html;
             testBtn.style.display = '';
         }
 
